@@ -1,0 +1,76 @@
+#Encabezados del template
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+#Definición de recursos
+Resources:
+  #Definición de primera lambda
+  SaveHelloFunction:
+    #Se indica que es una función serverless (Lambda)
+    Type: 'AWS::Serverless::Function'
+    #Propiedades de la lambda
+    Properties:
+      #La función que se ejecutara
+      Handler: handler.saveHello
+      #Ambiente de ejecución, en este caso nodejs
+      Runtime: nodejs14.x
+      #Carpeta donde se encuentra el codigo
+      CodeUri: ./hello
+      #Politicas para la lambda
+      Policies:
+        #Politica para permitir el CRUD a una base de datos en DynamoDB
+        - DynamoDBCrudPolicy:
+            #Nombre de la tabla en DynamoDB
+            TableName: !Ref GreetingsTable
+      #Entorno de la lambda
+      Environment:
+        #Definición de variables de entorno
+        Variables:
+          #Creación de una variable de entorno
+          GREETINGS_TABLE: !Ref GreetingsTable
+      #Eventos que disparan la lambda
+      Events:
+        #Definición de una API Gateway
+        Api:
+          #Definición de API
+          Type: Api
+          #Propiedades del API
+          Properties: 
+            #Path o ruta del endpoint
+            Path: /hello
+            #Metodo HTTP de la petición
+            Method: POST
+  
+  #Otra función lambda
+  GetHelloFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: handler.getHello
+      Runtime: nodejs14.x
+      CodeUri: ./hello
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GreetingsTable
+      Environment:
+        Variables:
+          GREETINGS_TABLE: !Ref GreetingsTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: GET
+
+  #Definición de una tabla en Dynamo DB
+  GreetingsTable:
+    #Definición del tipo de table
+    Type: AWS::Serverless::SimpleTable
+
+#Definición de salidas en el deploy
+Outputs:
+  #Salida personalizada
+  MyApi:
+    #Descripción
+    Description: "API Gateway Endpoint URL"
+    #Valor
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
